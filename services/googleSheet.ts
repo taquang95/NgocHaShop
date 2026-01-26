@@ -75,7 +75,7 @@ const CATEGORY_SLUG_MAP: Record<string, string> = {
 };
 
 // Hàm tìm giá trị được cập nhật để ưu tiên các từ khóa trong aliases (theo thứ tự)
-const findValue = (rowObj: any, aliases: string[]) => {
+const findValue = (rowObj: Record<string, any>, aliases: string[]) => {
   const rowKeys = Object.keys(rowObj);
   // Tạo map các key đã chuẩn hóa
   const normalizedKeys = rowKeys.map(k => ({ original: k, normalized: normalizeKey(k) }));
