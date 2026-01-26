@@ -1,6 +1,6 @@
 
 import React, { Suspense } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { ProductProvider } from './context/ProductContext';
 
@@ -24,7 +24,7 @@ const PageLoader = () => (
 const App: React.FC = () => {
   return (
     <ProductProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Suspense fallback={<Layout><PageLoader /></Layout>}>
           <Routes>
             {/* Public Routes (Shared Layout) */}
@@ -42,7 +42,7 @@ const App: React.FC = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
-      </HashRouter>
+      </BrowserRouter>
     </ProductProvider>
   );
 };
