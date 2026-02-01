@@ -12,6 +12,21 @@ const normalizeKey = (key: string) => {
     .trim();
 };
 
+// Hàm tạo Slug chuẩn SEO từ tiếng Việt
+const createSeoSlug = (str: string, id: string) => {
+  const slug = str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Xóa dấu
+    .replace(/[đĐ]/g, "d") // Xử lý chữ đ
+    .replace(/[^a-z0-9\s-]/g, "") // Xóa ký tự đặc biệt
+    .trim()
+    .replace(/\s+/g, "-"); // Thay khoảng trắng bằng gạch ngang
+  
+  // Thêm ID vào cuối để đảm bảo duy nhất và giống format Shopee/Tiki
+  return `${slug}-${id}`.toLowerCase();
+};
+
 // Từ điển ánh xạ cột (Mapping) mở rộng - Ưu tiên các từ khóa chính xác
 const COLUMN_MAP = {
   id: ['id', 'stt', 'ma', 'masp', 'masanpham', 'sku', 'code'],
@@ -312,7 +327,8 @@ const parseCSV = (csvText: string): Product[] => {
     products.push({
       id: productId,
       title,
-      slug: title.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+      // SEO Friendly Slug: slug-name-id
+      slug: createSeoSlug(title, productId),
       categoryId: mappedCategory, 
       brand: brandFromSheet,
       imageUrl: mainImage,

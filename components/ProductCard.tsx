@@ -26,6 +26,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isLoading }) 
     );
   }
 
+  // Use the slug for SEO friendly URL
+  const productUrl = `/san-pham/${product.slug}`;
+
   return (
     <div 
       className="group bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl hover:border-primary/20 transition-all duration-300 relative flex flex-col h-full"
@@ -47,7 +50,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isLoading }) 
       </div>
 
       {/* Image Section */}
-      <Link to={`/product/${product.id}`} className="block relative overflow-hidden aspect-square bg-gray-50 p-2">
+      <Link to={productUrl} className="block relative overflow-hidden aspect-square bg-gray-50 p-2">
         <img 
           src={product.imageUrl} 
           alt={product.title}
@@ -62,7 +65,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isLoading }) 
 
       {/* Content Section */}
       <div className="p-3 flex flex-col flex-grow">
-        <Link to={`/product/${product.id}`} className="block flex-grow group/title">
+        <Link to={productUrl} className="block flex-grow group/title">
           <h3 className="text-xs font-semibold text-gray-800 line-clamp-2 min-h-[32px] leading-snug group-hover/title:text-primary transition-colors">
             {product.title}
           </h3>
@@ -90,9 +93,9 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, isLoading }) 
           </div>
         </Link>
         
-        {/* Action Button - Exact match to user screenshot style */}
+        {/* Action Button */}
         <div className="mt-4">
-            <Link to={`/product/${product.id}`}>
+            <Link to={productUrl}>
                <Button 
                  variant="outline" 
                  size="sm" 

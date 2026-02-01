@@ -46,7 +46,7 @@ const getRichContent = (product: Product) => ({
 });
 
 export const ProductDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const { products, loading: globalLoading } = useProducts();
   
   const [product, setProduct] = useState<Product | null>(null);
@@ -61,13 +61,26 @@ export const ProductDetail: React.FC = () => {
 
     setLoading(true);
     
+    // Tìm kiếm sản phẩm bằng slug (vì URL hiện tại là /san-pham/:slug)
+    // Nếu không tìm thấy bằng slug chính xác, thử tìm gần đúng hoặc fallback
     setTimeout(() => {
-      const found = products.find(p => p.id === id) || products[0];
-      setProduct(found);
-      setActiveImage(found.imageUrl);
-      setIsDescriptionExpanded(false); // Reset expansion on product change
+      let found = products.find(p => p.slug === slug);
       
+      // Fallback: Nếu không tìm thấy, có thể URL cũ dùng ID, thử tìm theo ID nếu slug khớp pattern ID
+      if (!found && slug) {
+         found = products.find(p => p.id === slug);
+      }
+      
+      if (!found && products.length > 0) {
+         // Fallback cuối cùng nếu không tìm thấy gì (tránh crash)
+         found = products[0];
+      }
+
+      setProduct(found || null);
       if (found) {
+        setActiveImage(found.imageUrl);
+        setIsDescriptionExpanded(false); // Reset expansion on product change
+        
         const related = products
           .filter(p => p.categoryId === found.categoryId && p.id !== found.id)
           .slice(0, 4);
@@ -76,7 +89,7 @@ export const ProductDetail: React.FC = () => {
       
       setLoading(false);
     }, 300);
-  }, [id, products, globalLoading]);
+  }, [slug, products, globalLoading]);
 
   // SEO & META TAGS
   useEffect(() => {

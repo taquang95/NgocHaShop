@@ -29,7 +29,11 @@ const App: React.FC = () => {
           <Routes>
             {/* Public Routes (Shared Layout) */}
             <Route path="/" element={<Layout><Home /></Layout>} />
-            <Route path="/product/:id" element={<Layout><ProductDetail /></Layout>} />
+            {/* SEO Friendly Route */}
+            <Route path="/san-pham/:slug" element={<Layout><ProductDetail /></Layout>} />
+            {/* Backward compatibility / Legacy route redirect */}
+            <Route path="/product/:id" element={<Navigate to="/" replace />} />
+            
             <Route path="/category/:slug" element={<Layout><CategoryPage /></Layout>} />
             <Route path="/deals" element={<Navigate to="/category/deals" replace />} />
             <Route path="/blog" element={<Layout><BlogPage /></Layout>} />
