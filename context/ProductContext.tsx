@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product } from '../types';
-import { MOCK_PRODUCTS } from '../constants';
 import { fetchProductsFromSheet } from '../services/googleSheet';
 
 interface ProductContextType {

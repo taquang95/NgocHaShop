@@ -6,7 +6,7 @@ const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQuh7Fs6d
 
 // Hàm chuẩn hóa key để so sánh dễ hơn (xóa dấu, về chữ thường, xóa khoảng trắng)
 const normalizeKey = (key: string) => {
-  return key.toLowerCase()
+  return String(key).toLowerCase()
     .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Xóa dấu tiếng Việt
     .replace(/[^a-z0-9]/g, '') // Xóa ký tự đặc biệt và khoảng trắng
     .trim();
@@ -14,7 +14,7 @@ const normalizeKey = (key: string) => {
 
 // Hàm tạo Slug chuẩn SEO từ tiếng Việt
 const createSeoSlug = (str: string, id: string) => {
-  const slug = str
+  const slug = String(str)
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Xóa dấu
@@ -303,7 +303,8 @@ const parseCSV = (csvText: string): Product[] => {
 
     // IMAGES
     const rawImages = findValue(obj, COLUMN_MAP.image) || '';
-    const imageUrls = rawImages.split('|').map((url: string) => url.trim()).filter((url: string) => url.length > 0);
+    // Fix: cast to string before splitting to avoid runtime error if cell is number
+    const imageUrls = String(rawImages).split('|').map((url: string) => url.trim()).filter((url: string) => url.length > 0);
     const mainImage = imageUrls.length > 0 ? imageUrls[0] : 'https://via.placeholder.com/400?text=No+Image';
 
     // BRAND & CATEGORY
