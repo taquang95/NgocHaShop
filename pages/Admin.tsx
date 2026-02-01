@@ -1,18 +1,14 @@
 
 import React from 'react';
-// Fix: Import MOCK_STATS which was missing from constants
 import { MOCK_STATS } from '../constants';
-import { BarChart, Users, ShoppingCart, MousePointer } from 'lucide-react';
+import { BarChart, MousePointer } from 'lucide-react';
 
 export const AdminDashboard: React.FC = () => {
-  // Simple check (in real app, use auth context)
-  
   return (
     <div className="bg-gray-50 min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard Overview</h1>
         
-        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <div className="flex items-center justify-between mb-4">
@@ -30,12 +26,9 @@ export const AdminDashboard: React.FC = () => {
               </div>
               <p className="text-3xl font-bold">{MOCK_STATS.ctr}%</p>
            </div>
-           
-           {/* More stats placeholder */}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-           {/* Top Products */}
            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-bold mb-4">Top Performing Products</h2>
               <div className="space-y-4">
@@ -48,23 +41,21 @@ export const AdminDashboard: React.FC = () => {
               </div>
            </div>
 
-           {/* Retailer Split */}
            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <h2 className="text-lg font-bold mb-4">Traffic by Retailer</h2>
               <div className="space-y-4">
-                 {/* Fix: Explicitly handle the typing of entries to avoid 'unknown' and arithmetic errors */}
                  {Object.entries(MOCK_STATS.clicksByRetailer).map(([r, count]) => {
-                    const clickCount = count as number;
+                    const percentage = (Number(count) / MOCK_STATS.totalClicks) * 100;
                     return (
                       <div key={r}>
                          <div className="flex justify-between text-sm mb-1">
                             <span>{r}</span>
-                            <span className="font-medium">{clickCount}</span>
+                            <span className="font-medium">{count}</span>
                          </div>
                          <div className="w-full bg-gray-200 rounded-full h-2">
                             <div 
                               className="bg-primary rounded-full h-2" 
-                              style={{ width: `${(clickCount / MOCK_STATS.totalClicks) * 100}%` }}
+                              style={{ width: `${percentage}%` }}
                             />
                          </div>
                       </div>
