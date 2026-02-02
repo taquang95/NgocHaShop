@@ -49,6 +49,44 @@ export const Home: React.FC = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [activeTab, setActiveTab] = useState('fashion'); // Default to fashion instead of all
 
+  // Schema for Home Page: WebSite (Search Box) & Organization
+  const homeSchema = useMemo(() => {
+    return [
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Ngọc Hà Shop",
+        "url": "https://ngochashop.com/",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://ngochashop.com/category/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Ngọc Hà Shop",
+        "url": "https://ngochashop.com",
+        "logo": "https://i.postimg.cc/YS74xvvL/logo-cam-web.png",
+        "sameAs": [
+          "https://www.facebook.com/ngochashopcom",
+          "https://www.tiktok.com/@ngochashop"
+        ],
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "092 44 222 68",
+          "contactType": "customer service",
+          "areaServed": "VN",
+          "availableLanguage": "Vietnamese"
+        }
+      }
+    ];
+  }, []);
+
   // Filter products for the "Suggestion" section based on active tab
   const suggestionProducts = useMemo(() => {
     if (activeTab === 'all') return products.slice(0, 10);
@@ -127,7 +165,12 @@ export const Home: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-12 bg-[#f8f9fa]">
-      
+      {/* Schema Injection */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeSchema) }}
+      />
+
       {/* Image Slider Section */}
       <section className="max-w-7xl mx-auto px-4 pt-4 md:pt-6">
         <div className="relative rounded-2xl overflow-hidden shadow-lg aspect-[2/1] md:aspect-[3/1] bg-gray-100 group">

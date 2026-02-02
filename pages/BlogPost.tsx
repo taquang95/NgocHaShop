@@ -1,6 +1,6 @@
 
 import { Calendar, ChevronRight, Facebook, MessageCircle, Share2, User } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ProductCard } from '../components/ProductCard';
 import { MOCK_POSTS } from '../constants';
@@ -23,6 +23,37 @@ export const BlogPost: React.FC = () => {
     }
     window.scrollTo(0, 0);
   }, [slug, products]);
+
+  // Schema for Article
+  const articleSchema = useMemo(() => {
+    if (!post) return null;
+    return {
+      "@context": "https://schema.org",
+      "@type": "BlogPosting",
+      "headline": post.title,
+      "image": [post.imageUrl],
+      "datePublished": post.createdAt,
+      "dateModified": post.createdAt,
+      "author": {
+        "@type": "Organization",
+        "name": "Ngọc Hà Shop",
+        "url": "https://ngochashop.com"
+      },
+      "publisher": {
+         "@type": "Organization",
+         "name": "Ngọc Hà Shop",
+         "logo": {
+            "@type": "ImageObject",
+            "url": "https://i.postimg.cc/YS74xvvL/logo-cam-web.png"
+         }
+      },
+      "description": post.excerpt,
+      "mainEntityOfPage": {
+         "@type": "WebPage",
+         "@id": window.location.href
+      }
+    };
+  }, [post]);
 
   const handleShareFacebook = () => {
     const url = window.location.href;
@@ -74,6 +105,14 @@ export const BlogPost: React.FC = () => {
 
   return (
     <div className="bg-white min-h-screen pb-16">
+      {/* Schema Injection */}
+      {articleSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        />
+      )}
+
       <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Breadcrumb */}
         <nav className="text-sm text-gray-500 mb-8 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
