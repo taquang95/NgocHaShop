@@ -11,6 +11,9 @@ interface ProductContextType {
   isUsingLiveData: boolean;
 }
 
+const CACHE_KEY = 'ngochashop_products_cache';
+const CACHE_TIME = 1000 * 60 * 60; // 1 giờ
+
 const ProductContext = createContext<ProductContextType>({
   products: [],
   loading: true,
@@ -27,40 +30,59 @@ export const ProductProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [error, setError] = useState<string | null>(null);
   const [isUsingLiveData, setIsUsingLiveData] = useState(false);
 
-  const loadData = async () => {
-    setLoading(true);
+  // Thử khôi phục từ Cache ngay khi khởi tạo (Đồng bộ - giúp render nhanh nhất có thể)
+  useEffect(() => {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (cached) {
+      try {
+        const { data, timestamp } = JSON.parse(cached);
+        const isExpired = Date.now() - timestamp > CACHE_TIME;
+        if (data && data.length > 0) {
+          console.log("ProductProvider: Restored from Cache.");
+          setProducts(data);
+          setLoading(false); // Ngắt loading sớm cho Bot
+          setIsUsingLiveData(true);
+          
+          // Nếu cache quá cũ, vẫn tải mới ở background
+          if (isExpired) {
+            loadData(false);
+          }
+        } else {
+          loadData(true);
+        }
+      } catch (e) {
+        loadData(true);
+      }
+    } else {
+      loadData(true);
+    }
+  }, []);
+
+  const loadData = async (showLoading: boolean = true) => {
+    if (showLoading) setLoading(true);
     setError(null);
     try {
-      console.log("ProductProvider: Loading data...");
       const sheetProducts = await fetchProductsFromSheet();
       
       if (sheetProducts.length > 0) {
-        console.log(`ProductProvider: Using ${sheetProducts.length} items from Sheet.`);
-        setProducts(sheetProducts); 
+        setProducts(sheetProducts);
         setIsUsingLiveData(true);
-      } else {
-        // If sheet returns 0 items (or fails filtering), we return empty to let user know
-        // instead of falling back to Mock Data which confuses the user.
-        console.warn("ProductProvider: Sheet empty or no 'Done' items found.");
-        setProducts([]);
-        setIsUsingLiveData(true);
+        // Lưu vào cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify({
+          data: sheetProducts,
+          timestamp: Date.now()
+        }));
       }
     } catch (err) {
       console.error("ProductProvider Error:", err);
       setError('Could not load live data');
-      setProducts([]); // Also set empty on error
-      setIsUsingLiveData(false);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
   return (
-    <ProductContext.Provider value={{ products, loading, error, refreshProducts: loadData, isUsingLiveData }}>
+    <ProductContext.Provider value={{ products, loading, error, refreshProducts: () => loadData(true), isUsingLiveData }}>
       {children}
     </ProductContext.Provider>
   );
