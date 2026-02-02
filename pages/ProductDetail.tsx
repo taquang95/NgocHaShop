@@ -8,108 +8,131 @@ import {
 } from 'lucide-react';
 import { Product } from '../types';
 import { Button } from '../components/ui/Button';
-import { ProductCard } from '../components/ProductCard';
 import { trackClick } from '../services/analytics';
 import { useProducts } from '../context/ProductContext';
 import { CATEGORIES } from '../constants';
-
-const getRichContent = (product: Product) => ({
-  shortDescription: `${product.shortDescription || product.title + ' ghi điểm với người dùng nhờ thiết kế sang trọng, hiệu năng mạnh mẽ trong tầm giá.'}`,
-  description: product.description || `Sản phẩm **${product.title}** từ thương hiệu **${product.brand}** đang là lựa chọn hàng đầu.`,
-  faqs: [
-    { q: 'Hàng có sẵn không?', a: 'Toàn bộ sản phẩm trên website đều là hàng có sẵn.' },
-    { q: 'Sản phẩm có giống hình không?', a: 'Chúng tôi cam kết hình ảnh 100% là ảnh thật.' },
-    { q: 'Có được kiểm tra hàng không?', a: 'Có, bạn được kiểm tra hàng trước khi thanh toán.' }
-  ]
-});
 
 export const ProductDetail: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const { products, loading: globalLoading } = useProducts();
   
   const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [activeImage, setActiveImage] = useState<string>('');
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
 
-  // Tìm sản phẩm ngay lập tức khi danh sách sản phẩm thay đổi (nhận dữ liệu từ cache nhanh hơn network)
+  // Tìm sản phẩm
   useEffect(() => {
     if (products.length > 0 && slug) {
       const found = products.find(p => p.slug === slug) || products.find(p => p.id === slug);
       if (found) {
         setProduct(found);
         setActiveImage(found.imageUrl);
-        setRelatedProducts(products.filter(p => p.categoryId === found.categoryId && p.id !== found.id).slice(0, 4));
       }
     }
+    window.scrollTo(0, 0);
   }, [slug, products]);
 
-  // EFFECT: Inject SEO Meta & JSON-LD vào Head (Tách riêng để chạy ngay khi có 'product')
+  // Cập nhật Meta Title/Description nhanh nhất có thể
   useEffect(() => {
-    if (!product) return;
+    if (product) {
+      const title = `${product.title} - Giá tốt nhất tại Ngọc Hà Shop`;
+      const desc = `Mua ${product.title} chính hãng từ ${product.brand}. ${product.shortDescription || product.description?.slice(0, 150)}`;
+      document.title = title;
+      const metaDesc = document.querySelector('meta[name="description"]');
+      if (metaDesc) metaDesc.setAttribute('content', desc);
+    }
+  }, [product]);
 
-    // 1. Cập nhật Meta Tags cơ bản
-    const title = `${product.title} - Giảm ${product.discountPercent}% | Ngọc Hà Shop`;
-    const description = `Mua ngay ${product.title} chính hãng tại ${product.retailer}. Giá ưu đãi chỉ ${product.priceDeal?.toLocaleString()}đ.`;
-    
-    document.title = title;
-    
-    const metaDesc = document.querySelector('meta[name="description"]');
-    if (metaDesc) metaDesc.setAttribute('content', description);
+  // Logic lấy tên danh mục
+  const getCategoryName = (catId: string) => {
+    const cat = CATEGORIES.find(c => c.slug === catId);
+    return cat ? cat.name : catId;
+  };
 
-    // 2. Tạo Schema JSON-LD
-    const productSchema = {
+  // Tạo Schema Object - Cấu trúc chuẩn 2024
+  const jsonLd = useMemo(() => {
+    if (!product) return null;
+
+    const currentUrl = window.location.href;
+    const price = product.priceDeal || product.priceRegular;
+
+    return {
       "@context": "https://schema.org",
       "@type": "Product",
       "name": product.title,
       "image": product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls : [product.imageUrl],
-      "description": description,
+      "description": product.shortDescription || product.description?.slice(0, 200),
       "sku": product.id,
       "mpn": product.id,
-      "brand": { "@type": "Brand", "name": product.brand || "Ngọc Hà Shop" },
-      "offers": {
-        "@type": "Offer",
-        "url": window.location.href,
-        "priceCurrency": "VND",
-        "price": product.priceDeal || product.priceRegular,
-        "priceValidUntil": "2026-12-31",
-        "itemCondition": "https://schema.org/NewCondition",
-        "availability": "https://schema.org/InStock",
-        "seller": { "@type": "Organization", "name": "Ngọc Hà Shop" }
+      "brand": {
+        "@type": "Brand",
+        "name": product.brand || "Ngọc Hà Shop"
+      },
+      "review": {
+        "@type": "Review",
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": product.rating || 5,
+          "bestRating": "5"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Khách hàng Ngọc Hà Shop"
+        }
       },
       "aggregateRating": {
         "@type": "AggregateRating",
         "ratingValue": product.rating || 5,
-        "reviewCount": product.ratingCount || 100,
-        "bestRating": "5",
-        "worstRating": "1"
+        "reviewCount": product.ratingCount || 100
+      },
+      "offers": {
+        "@type": "Offer",
+        "url": currentUrl,
+        "priceCurrency": "VND",
+        "price": price.toString(),
+        "priceValidUntil": "2026-12-31",
+        "itemCondition": "https://schema.org/NewCondition",
+        "availability": "https://schema.org/InStock",
+        "seller": {
+          "@type": "Organization",
+          "name": "Ngọc Hà Shop"
+        },
+        "hasMerchantReturnPolicy": {
+          "@type": "MerchantReturnPolicy",
+          "applicableCountry": "VN",
+          "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+          "merchantReturnDays": 7,
+          "returnMethod": "https://schema.org/ReturnByMail",
+          "returnFees": "https://schema.org/FreeReturn"
+        },
+        "shippingDetails": {
+          "@type": "OfferShippingDetails",
+          "shippingRate": {
+            "@type": "MonetaryAmount",
+            "value": 0,
+            "currency": "VND"
+          },
+          "shippingDestination": {
+            "@type": "DefinedRegion",
+            "addressCountry": "VN"
+          },
+          "deliveryTime": {
+            "@type": "ShippingDeliveryTime",
+            "handlingTime": {
+              "@type": "QuantitativeValue",
+              "minValue": 0,
+              "maxValue": 1,
+              "unitCode": "d"
+            },
+            "transitTime": {
+              "@type": "QuantitativeValue",
+              "minValue": 1,
+              "maxValue": 4,
+              "unitCode": "d"
+            }
+          }
+        }
       }
-    };
-
-    const breadcrumbSchema = {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Trang chủ", "item": "https://ngochashop.com/" },
-        { "@type": "ListItem", "position": 2, "name": getCategoryName(product.categoryId), "item": `https://ngochashop.com/category/${product.categoryId}` },
-        { "@type": "ListItem", "position": 3, "name": product.title }
-      ]
-    };
-
-    const scriptId = 'product-schema-jsonld';
-    let scriptTag = document.getElementById(scriptId) as HTMLScriptElement;
-    if (!scriptTag) {
-      scriptTag = document.createElement('script');
-      scriptTag.id = scriptId;
-      scriptTag.type = 'application/ld+json';
-      document.head.appendChild(scriptTag);
-    }
-    scriptTag.text = JSON.stringify([productSchema, breadcrumbSchema]);
-
-    return () => {
-      const existingScript = document.getElementById(scriptId);
-      if (existingScript) existingScript.remove();
     };
   }, [product]);
 
@@ -119,39 +142,28 @@ export const ProductDetail: React.FC = () => {
     window.open(product.affiliateUrl, '_blank');
   };
 
-  const formatSold = (num: number) => num >= 1000 ? (num / 1000).toFixed(0) + 'k' : num.toString();
-
-  function getCategoryName(slug: string) {
-    const cat = CATEGORIES.find(c => c.slug === (slug || '').trim());
-    return cat ? cat.name : (slug === 'others' ? 'Sản phẩm khác' : slug);
-  }
-
-  // Chú ý: Không dùng 'return Loader' nếu globalLoading = false và đã có data từ cache
   if (!product && globalLoading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 animate-pulse">
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="bg-gray-200 h-96 rounded-xl"></div>
-          <div className="space-y-4">
-             <div className="bg-gray-200 h-8 w-3/4 rounded"></div>
-             <div className="bg-gray-200 h-20 w-full rounded"></div>
-          </div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[50vh]">
+        <div className="loader mb-4"></div>
+        <p className="text-gray-500 animate-pulse">Đang tải thông tin sản phẩm...</p>
       </div>
     );
   }
 
   if (!product) {
-    return <div className="py-20 text-center">Không tìm thấy sản phẩm.</div>;
+    return <div className="py-20 text-center text-gray-500">Sản phẩm không tồn tại hoặc đã bị gỡ bỏ.</div>;
   }
 
-  const richContent = getRichContent(product);
-  const descriptionText = product.description || richContent.description;
-  const isDescriptionLong = descriptionText.length > 250;
-  const displayDescription = !isDescriptionExpanded && isDescriptionLong ? descriptionText.slice(0, 250) + '...' : descriptionText;
-
   return (
-    <div className="bg-[#f8f9fa] min-h-screen pb-24 md:pb-12 font-sans text-gray-800">
+    <div className="bg-[#f8f9fa] min-h-screen pb-12 font-sans text-gray-800">
+      {/* 🚀 SCHEMA JSON-LD RENDER TRỰC TIẾP TRONG BODY ĐỂ BOT THẤY NGAY 🚀 */}
+      {jsonLd && (
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      )}
+
       <div className="max-w-7xl mx-auto px-4 py-4">
         {/* Breadcrumb */}
         <nav className="text-sm text-gray-500 mb-6 flex items-center gap-1 overflow-x-auto whitespace-nowrap">
@@ -163,6 +175,7 @@ export const ProductDetail: React.FC = () => {
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left: Images */}
           <div className="lg:col-span-5">
             <div className="sticky top-24 space-y-4">
               <div className="bg-white rounded-2xl overflow-hidden border border-gray-200 shadow-sm relative">
@@ -176,16 +189,18 @@ export const ProductDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* Right: Info */}
           <div className="lg:col-span-7 space-y-6">
             <div>
-               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{product.title}</h1>
-               <div className="flex items-center flex-wrap gap-4 mb-4 text-sm text-gray-500">
+               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-snug mb-3">{product.title}</h1>
+               <div className="flex items-center flex-wrap gap-4 mb-4 text-sm">
                  <div className="flex items-center text-yellow-500 bg-yellow-50 px-2 py-1 rounded-md border border-yellow-100">
                    <span className="font-bold text-base mr-1">{product.rating.toFixed(1)}</span>
                    <Star size={14} fill="currentColor" />
                  </div>
-                 <span>Đã bán: {product.soldCount ? formatSold(product.soldCount) : '0'}</span>
-                 <span>Thương hiệu: <span className="text-primary font-medium">{product.brand}</span></span>
+                 <span className="text-gray-500">Đã bán: {product.soldCount?.toLocaleString()}</span>
+                 <span className="text-gray-300">|</span>
+                 <span className="text-gray-500">Thương hiệu: <span className="text-primary font-medium">{product.brand}</span></span>
                </div>
 
                <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -196,17 +211,28 @@ export const ProductDetail: React.FC = () => {
                      {product.discountPercent > 0 && <span className="text-lg text-gray-400 line-through">{product.priceRegular.toLocaleString()}₫</span>}
                    </div>
                  </div>
-                 <Button onClick={handleBuy} fullWidth size="lg" className="text-lg h-14 bg-[#ee4d2d] hover:bg-[#d73211] shadow-xl">Mua Ngay <ExternalLink size={20} className="ml-2" /></Button>
+                 <Button onClick={handleBuy} fullWidth size="lg" className="text-lg h-14 bg-[#ee4d2d] hover:bg-[#d73211] shadow-xl">Mua Ngay Tại {product.retailer} <ExternalLink size={20} className="ml-2" /></Button>
+               </div>
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+               <div className="bg-gray-50 px-5 py-3 border-b border-gray-200 font-bold flex items-center gap-2"><ShieldCheck size={18} className="text-primary" /> An tâm mua sắm</div>
+               <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-center gap-3"><Truck className="text-primary" /> Miễn phí vận chuyển</div>
+                  <div className="flex items-center gap-3"><RotateCcw className="text-primary" /> Trả hàng 7 ngày</div>
+                  <div className="flex items-center gap-3"><ShieldCheck className="text-primary" /> Chính hãng 100%</div>
                </div>
             </div>
 
             <section>
               <h2 className="text-xl font-bold mb-3">Mô tả sản phẩm</h2>
               <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="whitespace-pre-line text-gray-600 leading-relaxed">{displayDescription}</div>
-                {isDescriptionLong && (
+                <div className={`whitespace-pre-line text-gray-600 leading-relaxed ${!isDescriptionExpanded ? 'line-clamp-[10]' : ''}`}>
+                  {product.description || "Đang cập nhật nội dung chi tiết cho sản phẩm này..."}
+                </div>
+                {product.description && product.description.length > 500 && (
                   <button onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)} className="text-primary font-bold hover:underline mt-4">
-                    {isDescriptionExpanded ? 'Thu gọn' : 'Xem chi tiết'}
+                    {isDescriptionExpanded ? 'Thu gọn' : 'Xem thêm chi tiết'}
                   </button>
                 )}
               </div>
